@@ -1,4 +1,4 @@
-// publish example：    yarn package:publish -p './packages/xxx' --prepatch
+// publish example：    yarn package:publish -p './packages/xxx' --prepatch -ncs 'registry={Your npm registry},_authToken={Your npm account token},access public'
 // unpublish example：  yarn package:publish -p './packages/xxx' --unpublish 0.0.1
 
 const fs = require("fs-extra");
@@ -79,10 +79,15 @@ function workingDir(dir, cwd, checkExisting = true) {
     let isUnPublish = false;
     let unPublishVersion = "";
     let versionCommand = "";
+    let npmConfigs = [
+        // "--registry={Your npm registry}",
+        // "--_authToken={Your npm account token}",
+        // "--access public", // when pkg name start with @, set a package to be either publicly accessible or restricted.
+    ];
     program
         .version((await fs.readJson(packageJsonPath)).version)
         .arguments("[cwd]")
-        .option("-p, --packagePath [path]", "specify the package directory")
+        .option("-p, --packagePath [package path]", "specify the package directory")
         .option(
             "--namePrefix [namePrefix]",
             "prefix of package name (eg: @xxx/)",
@@ -96,6 +101,7 @@ function workingDir(dir, cwd, checkExisting = true) {
         .option("--minor", "1.1.0-n >> 1.1.0")
         .option("--major", "2.0.0-n >> 2.0.0")
         .option("--unpublish [<@scope>/]<pkg>@<version>")
+        .option("-ncs, --npmConfigs [npm configs]")
         .action(async (cwd, options) => {
             dir = workingDir(dir, cwd);
             if (options.packagePath) {
@@ -112,6 +118,9 @@ function workingDir(dir, cwd, checkExisting = true) {
                     // eslint-disable-next-line valid-typeof
                     typeof options.unpublish === true ? "" : options.unpublish;
             }
+            if(options.npmConfigs){
+                npmConfigs = options.npmConfigs.split(",").map(conf=>`--${conf}`);
+            }
         })
         .parse(process.argv);
 
@@ -122,11 +131,7 @@ function workingDir(dir, cwd, checkExisting = true) {
         isUnPublish,
         unPublishVersion,
         ...program.opts(),
-        npmCliConfigs: [
-            // "--registry={Your npm registry}",
-            // "--_authToken={Your npm account token}",
-            // "--access public", // when pkg name start with @, set a package to be either publicly accessible or restricted.
-        ],
+        npmConfigs,
     };
 
     console.log("options", options);
@@ -138,7 +143,7 @@ class Action {
         this.packagePath = options.packagePath;
         this.packageJsonPath = options.packageJsonPath;
         this.namePrefix = options.namePrefix;
-        this.npmCliConfigs = options.npmCliConfigs;
+        this.npmConfigs = options.npmConfigs;
         this.isUnPublish = options.isUnPublish;
         this.unPublishVersion = options.unPublishVersion;
         this.buildCmd = options.build;
@@ -199,7 +204,7 @@ class Action {
         execCommand("npm", [
             "publish",
             this.packagePath,
-            ...this.npmCliConfigs,
+            ...this.npmConfigs,
         ]);
         console.log(`publish ${name}@${version} done!`);
     }
@@ -209,7 +214,7 @@ class Action {
             "unpublish",
             `${name}@${version}`,
             "--force",
-            ...this.npmCliConfigs,
+            ...this.npmConfigs,
         ]);
         console.log(`unpublish ${name}@${version} done!`);
     }
