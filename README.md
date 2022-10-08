@@ -48,3 +48,15 @@ pnpm dev
 ```bash
 pnpm build
 ```
+
+
+## upgrade
+
+### 2022.10.8
+
+overwrite file
+-- package.config.cjs
+
+```bash
+pnpm add -D fs-extra@^10.1.0 commander@^9.4.1
+```
