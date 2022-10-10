@@ -87,7 +87,10 @@ function workingDir(dir, cwd, checkExisting = true) {
     program
         .version((await fs.readJson(packageJsonPath)).version)
         .arguments("[cwd]")
-        .option("-p, --packagePath [package path]", "specify the package directory")
+        .option(
+            "-p, --packagePath [package path]",
+            "specify the package directory",
+        )
         .option(
             "--namePrefix [namePrefix]",
             "prefix of package name (eg: @xxx/)",
@@ -118,8 +121,10 @@ function workingDir(dir, cwd, checkExisting = true) {
                     // eslint-disable-next-line valid-typeof
                     typeof options.unpublish === true ? "" : options.unpublish;
             }
-            if(options.npmConfigs){
-                npmConfigs = options.npmConfigs.split(",").map(conf=>`--${conf}`);
+            if (options.npmConfigs) {
+                npmConfigs = options.npmConfigs
+                    .split(",")
+                    .map((conf) => `--${conf}`);
             }
         })
         .parse(process.argv);
@@ -155,7 +160,6 @@ class Action {
         this.execCommand(this.buildCmd);
         const configData = await fs.readJson(this.packageJsonPath);
         let { version, name } = configData;
-        console.log("publishPackage data=", name, version);
         let isSameName = true;
         // edit pkg name with prefixName
         if (name && this.namePrefix && !name.startsWith(this.namePrefix)) {
@@ -165,6 +169,7 @@ class Action {
 
         // unpublish handler
         if (this.isUnPublish) {
+            console.log("unPublishPackage data=", name, this.unPublishVersion);
             this.publishOrUnPublish(name, this.unPublishVersion);
             return;
         }
@@ -172,6 +177,7 @@ class Action {
         // publish handler
         configData.name = name;
         if (isSameName) {
+            console.log("publishPackage data=", name, version);
             this.publishOrUnPublish(name, version);
             return;
         }
@@ -179,6 +185,7 @@ class Action {
         await fs.writeJSON(this.packageJsonPath, configData, {
             spaces: 2,
         });
+        console.log("publishPackage data=", name, version);
         this.publishOrUnPublish(name, version);
     }
 
@@ -203,7 +210,7 @@ class Action {
     publish(name, version) {
         execCommand("npm", [
             "publish",
-            this.packagePath,
+            this.packagePath || ".",
             ...this.npmConfigs,
         ]);
         console.log(`publish ${name}@${version} done!`);
